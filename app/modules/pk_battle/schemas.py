@@ -30,6 +30,7 @@ class PkHostSummary(BaseModel):
     name: str
     username: str
     avatarUrl: str = ""
+    coverUrl: str = ""
     roomId: str | None = None
     score: int = 0
 
@@ -39,6 +40,7 @@ class PkBattleResponse(BaseModel):
     status: str
     durationSeconds: int
     secondsLeft: int
+    coverUrl: str = ""
     hostA: PkHostSummary
     hostB: PkHostSummary
     winnerId: str | None = None

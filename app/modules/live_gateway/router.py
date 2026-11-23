@@ -1,8 +1,11 @@
+from pathlib import Path
 from typing import Literal
+import uuid
 
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, File, Header, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import BadRequestError
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -15,6 +18,7 @@ from app.modules.live_gateway.schemas import (
     RtmpWebhookRequest,
 )
 from app.modules.live_gateway.service import live_gateway_service
+from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/live", tags=["Live Streaming Gateway"])
 
@@ -37,6 +41,21 @@ def list_live_rooms(
         page=page,
         page_size=page_size,
     )
+
+
+@router.post("/rooms/cover")
+async def upload_live_cover(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Upload a custom cover image from camera or file picker for a live stream."""
+    raw_bytes = await file.read()
+    if not raw_bytes:
+        raise BadRequestError("Uploaded file is empty")
+    ext = Path(file.filename or "cover.jpg").suffix.lower() or ".jpg"
+    key = f"live_covers/{uuid.uuid4().hex}{ext}"
+    url = storage_service.save_bytes(raw_bytes, key, content_type=file.content_type)
+    return {"coverUrl": url}
 
 
 @router.post("/rooms", response_model=LiveRoomCreatedResponse, status_code=status.HTTP_201_CREATED)

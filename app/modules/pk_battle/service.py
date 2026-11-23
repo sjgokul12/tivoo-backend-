@@ -58,16 +58,20 @@ class PkBattleService:
     def serialize_battle(cls, battle: PkBattle) -> PkBattleResponse:
         host_a = battle.host_a
         host_b = battle.host_b
+        cover_a = (battle.room_a.cover_url if (battle.room_a and battle.room_a.cover_url) else "") or (host_a.avatar_url if host_a else "")
+        cover_b = (battle.room_b.cover_url if (battle.room_b and battle.room_b.cover_url) else "") or (host_b.avatar_url if host_b else "")
         return PkBattleResponse(
             id=battle.id,
             status=battle.status,
             durationSeconds=battle.duration_seconds,
             secondsLeft=cls._remaining_seconds(battle),
+            coverUrl=cover_a or cover_b,
             hostA=PkHostSummary(
                 id=battle.host_a_id,
                 name=host_a.name if host_a else "Host A",
                 username=host_a.username if host_a else "host_a",
                 avatarUrl=host_a.avatar_url if host_a else "",
+                coverUrl=cover_a,
                 roomId=battle.room_a_id,
                 score=battle.host_a_score,
             ),
@@ -76,6 +80,7 @@ class PkBattleService:
                 name=host_b.name if host_b else "Host B",
                 username=host_b.username if host_b else "host_b",
                 avatarUrl=host_b.avatar_url if host_b else "",
+                coverUrl=cover_b,
                 roomId=battle.room_b_id,
                 score=battle.host_b_score,
             ),
@@ -413,7 +418,12 @@ class PkBattleService:
     def get_battle(self, db: Session, battle_id: str) -> PkBattleResponse:
         battle = db.scalar(
             select(PkBattle)
-            .options(joinedload(PkBattle.host_a), joinedload(PkBattle.host_b))
+            .options(
+                joinedload(PkBattle.host_a),
+                joinedload(PkBattle.host_b),
+                joinedload(PkBattle.room_a),
+                joinedload(PkBattle.room_b),
+            )
             .where(PkBattle.id == battle_id)
         )
         if not battle:
@@ -438,7 +448,12 @@ class PkBattleService:
         rows = list(
             db.scalars(
                 select(PkBattle)
-                .options(joinedload(PkBattle.host_a), joinedload(PkBattle.host_b))
+                .options(
+                    joinedload(PkBattle.host_a),
+                    joinedload(PkBattle.host_b),
+                    joinedload(PkBattle.room_a),
+                    joinedload(PkBattle.room_b),
+                )
                 .where(*conditions)
                 .order_by(PkBattle.created_at.desc())
                 .offset((page - 1) * page_size)

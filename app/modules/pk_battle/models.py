@@ -71,6 +71,8 @@ class PkBattle(Base):
 
     host_a = relationship("User", foreign_keys=[host_a_id])
     host_b = relationship("User", foreign_keys=[host_b_id])
+    room_a = relationship("LiveRoom", foreign_keys=[room_a_id])
+    room_b = relationship("LiveRoom", foreign_keys=[room_b_id])
 
 
 class PkScoreEvent(Base):
